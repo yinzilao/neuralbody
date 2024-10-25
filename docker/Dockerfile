@@ -1,4 +1,5 @@
-FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu18.04
+# FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu18.04
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu18.04
 
 # For the convenience for users in China mainland
 # COPY docker/apt-sources.list /etc/apt/sources.list
@@ -6,16 +7,10 @@ FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu18.04
 # Force IPv4 
 RUN echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
 # Use main Ubuntu archive
-# RUN sed -i 's|archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list
-
-# US mirror
-# RUN sed -i 's|archive.ubuntu.com|us.archive.ubuntu.com|g' /etc/apt/sources.list
+RUN sed -i 's|archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list
 
 # German mirror
-RUN sed -i 's|archive.ubuntu.com|de.archive.ubuntu.com|g' /etc/apt/sources.list
-
-# French mirror
-# RUN sed -i 's|archive.ubuntu.com|fr.archive.ubuntu.com|g' /etc/apt/sources.list
+# RUN sed -i 's|archive.ubuntu.com|de.archive.ubuntu.com|g' /etc/apt/sources.list
 
 # Install some basic utilities
 RUN rm -f /etc/apt/sources.list.d/nvidia-ml.list \
@@ -51,52 +46,37 @@ USER user
 ENV HOME=/home/user
 RUN chmod 777 /home/user
 
-# Install Miniconda and Python 3.8
-ENV CONDA_AUTO_UPDATE_CONDA=false
-ENV PATH=/home/user/miniconda/bin:$PATH
-RUN curl -sLo ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh \
- && chmod +x ~/miniconda.sh \
- && ~/miniconda.sh -b -p ~/miniconda \
- && rm ~/miniconda.sh \
- && conda install -y python==3.8.3 \
- && conda clean -ya
+# Use a specific older version of Mambaforge
+RUN curl -sLo /home/user/mambaforge.sh https://github.com/conda-forge/miniforge/releases/download/4.10.3-10/Mambaforge-4.10.3-10-Linux-x86_64.sh \
+ && chmod +x /home/user/mambaforge.sh \
+ && /home/user/mambaforge.sh -b -p /home/user/mambaforge \
+ && rm /home/user/mambaforge.sh
 
- # For the convenience for users in China mainland
-# COPY --chown=user docker/.condarc /home/user/.condarc
+# Add Mambaforge to PATH. make the PATH modification permanent by using the ENV instruction. 
+ENV PATH="/home/user/mambaforge/bin:$PATH"
 
-# CUDA 11.1-specific steps
-RUN conda install -y -c conda-forge cudatoolkit=11.1.1 \
- && conda install -y -c pytorch \
-    "pytorch=1.8.1=py3.8_cuda11.1_cudnn8.0.5_0" \
-    "torchvision=0.9.1=py38_cu111" \
- && conda clean -ya
-
-# Alter sources for the convenience of users located in China mainland.
-# RUN pip config set global.index-url https://pypi.douban.com/simple
-# Outside China mainland
-RUN pip config set global.index-url https://pypi.org/simple
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
-RUN pip install "numpy>=1.15.4,<1.17"
-RUN pip install "Cython>=0.23.4"
-RUN pip install --no-binary :all: "scikit-image>=0.14.2,<0.15"
-RUN pip install --upgrade trimesh
-RUN pip uninstall PIL
-RUN pip uninstall Pillow
-RUN pip install Pillow
-RUN pip install --upgrade imageio
+# Install dependencies
+COPY environment.yml environment.yml
+RUN mamba env create -f environment.yml \
+ && mamba clean -ya
 
 ENV CUDA_HOME=/usr/local/cuda
 RUN bash -c "git clone --recursive https://github.com/traveller59/spconv.git"
+
 # We manually download and install cmake since the requirements of spconv is newer than
 # that included in apt for ubuntu18.
 RUN curl -sLo cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.20.1/cmake-3.20.1.tar.gz \
- && tar -xvf cmake.tar.gz \
- && cd cmake-3.20.1 \
- && ./configure \
+ && tar -xvf cmake.tar.gz
+RUN cd cmake-3.20.1 \
+ && ./bootstrap \
  && make -j4 && sudo make install
+
 RUN sudo apt-get update && sudo apt-get install -y libboost-dev \
  && sudo rm -rf /var/lib/apt/lists/*
+
+# Activate the environment in subsequent RUN commands
+SHELL ["conda", "run", "-n", "neuralbody", "/bin/bash", "-c"]
+
 COPY docker/spconv.sh spconv.sh
 RUN bash spconv.sh
 
