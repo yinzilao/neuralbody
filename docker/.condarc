@@ -1,3 +1,4 @@
+# for users in China mainland only
 channels:
   - defaults
 show_channel_urls: true
