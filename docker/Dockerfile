@@ -1,12 +1,27 @@
 FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu18.04
 
 # For the convenience for users in China mainland
-COPY docker/apt-sources.list /etc/apt/sources.list
+# COPY docker/apt-sources.list /etc/apt/sources.list
+
+# Force IPv4 
+RUN echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
+# Use main Ubuntu archive
+# RUN sed -i 's|archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list
+
+# US mirror
+# RUN sed -i 's|archive.ubuntu.com|us.archive.ubuntu.com|g' /etc/apt/sources.list
+
+# German mirror
+RUN sed -i 's|archive.ubuntu.com|de.archive.ubuntu.com|g' /etc/apt/sources.list
+
+# French mirror
+# RUN sed -i 's|archive.ubuntu.com|fr.archive.ubuntu.com|g' /etc/apt/sources.list
 
 # Install some basic utilities
-RUN rm /etc/apt/sources.list.d/nvidia-ml.list \
- && rm /etc/apt/sources.list.d/cuda.list \
- && apt-get update && apt-get install -y \
+RUN rm -f /etc/apt/sources.list.d/nvidia-ml.list \
+ && rm -f /etc/apt/sources.list.d/cuda.list \
+ && apt-get update \
+ && apt-get install -y --fix-missing --no-install-recommends \
     curl \
     ca-certificates \
     sudo \
@@ -19,6 +34,7 @@ RUN rm /etc/apt/sources.list.d/nvidia-ml.list \
     cmake \
     libssl-dev \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-opencv \
+ && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
 # Create a working directory
@@ -38,13 +54,15 @@ RUN chmod 777 /home/user
 # Install Miniconda and Python 3.8
 ENV CONDA_AUTO_UPDATE_CONDA=false
 ENV PATH=/home/user/miniconda/bin:$PATH
-RUN curl -sLo ~/miniconda.sh https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh \
+RUN curl -sLo ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh \
  && chmod +x ~/miniconda.sh \
  && ~/miniconda.sh -b -p ~/miniconda \
  && rm ~/miniconda.sh \
  && conda install -y python==3.8.3 \
  && conda clean -ya
-COPY --chown=user docker/.condarc /home/user/.condarc
+
+ # For the convenience for users in China mainland
+# COPY --chown=user docker/.condarc /home/user/.condarc
 
 # CUDA 11.1-specific steps
 RUN conda install -y -c conda-forge cudatoolkit=11.1.1 \
@@ -54,9 +72,19 @@ RUN conda install -y -c conda-forge cudatoolkit=11.1.1 \
  && conda clean -ya
 
 # Alter sources for the convenience of users located in China mainland.
-RUN pip config set global.index-url https://pypi.douban.com/simple
+# RUN pip config set global.index-url https://pypi.douban.com/simple
+# Outside China mainland
+RUN pip config set global.index-url https://pypi.org/simple
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
+RUN pip install "numpy>=1.15.4,<1.17"
+RUN pip install "Cython>=0.23.4"
+RUN pip install --no-binary :all: "scikit-image>=0.14.2,<0.15"
+RUN pip install --upgrade trimesh
+RUN pip uninstall PIL
+RUN pip uninstall Pillow
+RUN pip install Pillow
+RUN pip install --upgrade imageio
 
 ENV CUDA_HOME=/usr/local/cuda
 RUN bash -c "git clone --recursive https://github.com/traveller59/spconv.git"

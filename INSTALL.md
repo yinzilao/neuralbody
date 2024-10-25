@@ -10,6 +10,16 @@ pip install torch==1.4.0+cu100 -f https://download.pytorch.org/whl/torch_stable.
 
 pip install -r requirements.txt
 
+# fixing pip install issues, scikit-image removed from the requirements.txt
+pip install "numpy>=1.15.4,<1.17"
+pip install "Cython>=0.23.4"
+pip install --no-binary :all: "scikit-image>=0.14.2,<0.15"
+pip install --upgrade trimesh
+pip uninstall PIL
+pip uninstall Pillow
+pip install Pillow
+pip install --upgrade imageio
+
 # install spconv
 cd
 git clone https://github.com/traveller59/spconv --recursive

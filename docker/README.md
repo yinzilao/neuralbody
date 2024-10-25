@@ -5,6 +5,12 @@ From the root path of the project:
 docker build -f docker/Dockerfile -t neuralbody .
 ```
 
+For Ubuntu 24.04, temporarily you need to run:
+```shell
+sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+sudo systemctl restart docker
+```
+
 You may want to try several times since there are so many packages to be downloaded through the Internet and htpp(s) erros could occur.
 
 ## 2. Data preparation
@@ -24,7 +30,7 @@ for name in $(ls *.tar.gz); do tar -xvf $name; done
 
 Suppose you are at the root path of the project, run a docker container like:
 ```shell
-docker run -it --rm --gpus=all \
+sudo docker run --runtime=nvidia -it --rm --gpus=all --shm-size=16G \
 --mount type=bind,source="$(pwd)",target=/app \
 --mount type=bind,source=<DATAPATH>,target=/app/data \
 neuralbody <COMMAND>
