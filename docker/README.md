@@ -13,6 +13,18 @@ sudo systemctl restart docker
 
 You may want to try several times since there are so many packages to be downloaded through the Internet and htpp(s) erros could occur.
 
+
+### Upgrade to compatible versions for RTX 4090, 
+#### Ubuntu 24.04 LTS
+#### RTX 4090 supports cuda >= 11.8
+nvidia/cuda:11.8.0-cudnn8-devel-ubuntu18.04
+Upgrade to 11.8.0 for RTX 4090: 
+    cuda 11.8.0
+    cudnn 8.7.0
+    pytorch 2.0.0
+    torchvision 0.15.1
+    python 3.8.3
+
 ## 2. Data preparation
 
 The docker image contains the environment you need to run the project, while you still need to manually download data as described in [INSTALL.md](https://github.com/zju3dv/neuralbody/blob/master/INSTALL.md).
