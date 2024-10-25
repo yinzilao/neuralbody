@@ -10,3 +10,12 @@ __pycache__/
 *.npy
 *.ipynb
 /data/
+
+# temporary files
+*.bk
+requirements-1.txt
+
+# model files
+smpl_model/
+*.pkl
+setup_scripts/
