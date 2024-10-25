@@ -95,8 +95,8 @@ data_root = 'data/people_snapshot'
 videos = ['female-3-casual']
 
 model_paths = [
-    'basicModel_f_lbs_10_207_0_v1.0.0.pkl',
-    'basicmodel_m_lbs_10_207_0_v1.0.0.pkl'
+    'data/smpl_models/basicModel_f_lbs_10_207_0_v1.0.0.pkl',
+    'data/smpl_models/basicmodel_m_lbs_10_207_0_v1.0.0.pkl'
 ]
 
 for video in videos:
@@ -144,3 +144,5 @@ for video in videos:
         base_smpl = Smpl(model_data)
         vertices, mesh = get_smpl(base_smpl, betas, pose[i], trans[i])
         np.save(os.path.join(vertices_dir, '{}.npy'.format(i)), vertices)
+
+print("DONE! Results saved in {}".format(data_root))

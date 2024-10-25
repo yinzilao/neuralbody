@@ -34,6 +34,15 @@ pip install spconv-1.2.1-cp36-cp36m-linux_x86_64.whl
 
 ### Set up datasets
 
+Download SMPL models and put them in `data/smpl_models/`.
+
+```
+model_paths = [
+    'data/smpl_models/basicModel_f_lbs_10_207_0_v1.0.0.pkl',
+    'data/smpl_models/basicmodel_m_lbs_10_207_0_v1.0.0.pkl'
+]
+```
+
 #### People-Snapshot dataset
 
 1. Download the People-Snapshot dataset [here](https://graphics.tu-bs.de/people-snapshot).
