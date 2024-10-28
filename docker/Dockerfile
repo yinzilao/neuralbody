@@ -7,10 +7,10 @@ FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu18.04
 # Force IPv4 
 RUN echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
 # Use main Ubuntu archive
-RUN sed -i 's|archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list
+# RUN sed -i 's|archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list
 
 # German mirror
-# RUN sed -i 's|archive.ubuntu.com|de.archive.ubuntu.com|g' /etc/apt/sources.list
+RUN sed -i 's|archive.ubuntu.com|de.archive.ubuntu.com|g' /etc/apt/sources.list
 
 # Install some basic utilities
 RUN rm -f /etc/apt/sources.list.d/nvidia-ml.list \
@@ -46,21 +46,54 @@ USER user
 ENV HOME=/home/user
 RUN chmod 777 /home/user
 
-# Use a specific older version of Mambaforge
+# Use a specific older version of Mambaforge and Python 3.8
+ENV CONDA_AUTO_UPDATE_CONDA=false
+ENV PATH="/home/user/mambaforge/bin:$PATH"
 RUN curl -sLo /home/user/mambaforge.sh https://github.com/conda-forge/miniforge/releases/download/4.10.3-10/Mambaforge-4.10.3-10-Linux-x86_64.sh \
  && chmod +x /home/user/mambaforge.sh \
  && /home/user/mambaforge.sh -b -p /home/user/mambaforge \
- && rm /home/user/mambaforge.sh
-
-# Add Mambaforge to PATH. make the PATH modification permanent by using the ENV instruction. 
-ENV PATH="/home/user/mambaforge/bin:$PATH"
-
-# Install dependencies
-COPY environment.yml environment.yml
-RUN mamba env create -f environment.yml \
+ && rm /home/user/mambaforge.sh \
+ && mamba install -y python==3.8.3 \
  && mamba clean -ya
 
-ENV CUDA_HOME=/usr/local/cuda
+# CUDA 11.8-specific steps
+RUN mamba install -y -c conda-forge cudatoolkit=11.8 \
+ && mamba install -y -c pytorch -c nvidia\
+    "pytorch=2.0.0=py3.8_cuda11.8_cudnn8.7.0_0" \
+    "torchvision=0.15.0=py38_cu118" \
+ && mamba clean -ya
+
+# Install dependencies
+# COPY environment.yml environment.yml
+# RUN mamba env update -n base --file environment.yml \
+#  && mamba clean -ya
+
+RUN pip config set global.index-url https://pypi.org/simple
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+RUN mamba install -y -c conda-forge -c python \
+   numpy \
+   Cython \
+   scikit-image \
+   && mamba clean -ya
+
+ 
+# RUN pip install numpy \
+#    && pip install Cython \
+#    && pip install --no-binary :all: "scikit-image>=0.14.2" 
+RUN pip install --upgrade trimesh
+RUN pip uninstall -y PIL
+RUN pip uninstall -y Pillow
+RUN pip install Pillow
+RUN pip install --upgrade imageio
+
+# Add these environment variables before building spconv
+ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX" \
+    FORCE_CUDA=1 \
+    CUDA_HOME=/usr/local/cuda \
+    LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
+
+#ENV CUDA_HOME=/usr/local/cuda
 RUN bash -c "git clone --recursive https://github.com/traveller59/spconv.git"
 
 # We manually download and install cmake since the requirements of spconv is newer than
@@ -74,10 +107,12 @@ RUN cd cmake-3.20.1 \
 RUN sudo apt-get update && sudo apt-get install -y libboost-dev \
  && sudo rm -rf /var/lib/apt/lists/*
 
-# Activate the environment in subsequent RUN commands
-SHELL ["conda", "run", "-n", "neuralbody", "/bin/bash", "-c"]
+RUN mamba install mkl==2024.0
 
 COPY docker/spconv.sh spconv.sh
 RUN bash spconv.sh
+
+# Check CUDA
+RUN set -x && nvcc --version
 
 CMD ["python3"]

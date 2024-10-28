@@ -21,10 +21,11 @@ nvidia/cuda:11.8.0-cudnn8-devel-ubuntu18.04
 Upgrade to 11.8.0 for RTX 4090: 
     cuda 11.8.0
     cudnn 8.7.0
-    pytorch 2.0.0
-    torchvision 0.15.1
+    pytorch 2.0.0 https://anaconda.org/pytorch/pytorch/2.0.0/download/linux-64/pytorch-2.0.0-py3.8_cuda11.8_cudnn8.7.0_0.tar.bz2
+    torchvision 0.15.0 https://anaconda.org/pytorch/torchvision/0.15.0/download/linux-64/torchvision-0.15.0-py38_cu118.tar.bz2
     python 3.8.3
 
+https://anaconda.org/pytorch/torchvision/files?sort=ndownloads&sort_order=desc&version=0.15.2
 ## 2. Data preparation
 
 The docker image contains the environment you need to run the project, while you still need to manually download data as described in [INSTALL.md](https://github.com/zju3dv/neuralbody/blob/master/INSTALL.md).
