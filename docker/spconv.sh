@@ -5,6 +5,16 @@ git submodule update --init --recursive
 # Modify setup.py to handle PyTorch version parsing
 sed -i '26s/PYTORCH_VERSION = list(map(int, PYTORCH_VERSION.split(".")))/PYTORCH_VERSION = [int(v.split("post")[0]) for v in PYTORCH_VERSION.split(".")[:3]]/' setup.py
 
+
+# Set CUDA architecture flags
+export TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9;8.9+PTX"
+
+# Force CUDA build
+export SPCONV_FORCE_BUILD_CUDA=1
+
+# Rebuild spconv with the correct architecture
+python setup.py clean
+
 # Build the wheel
 python setup.py bdist_wheel
 
