@@ -376,7 +376,15 @@ def load_network(net, model_dir, resume=True, epoch=-1, strict=True):
 
     print('load model: {}'.format(model_path))
     pretrained_model = torch.load(model_path)
-    net.load_state_dict(pretrained_model['net'], strict=strict)
+
+    # fix the weight mismatch issue
+    state_dict = pretrained_model['net']
+    for key in state_dict.keys():
+        if 'weight' in key and state_dict[key].dim() == 5:
+            # Transpose the dimensions to match the current model
+            state_dict[key] = state_dict[key].permute(4, 0, 1, 2, 3)
+
+    net.load_state_dict(state_dict, strict=strict)
     return pretrained_model['epoch'] + 1
 
 

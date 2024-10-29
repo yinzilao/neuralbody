@@ -82,8 +82,8 @@ RUN mamba install -y -c conda-forge -c python \
 #    && pip install Cython \
 #    && pip install --no-binary :all: "scikit-image>=0.14.2" 
 RUN pip install --upgrade trimesh
-RUN pip uninstall -y PIL
-RUN pip uninstall -y Pillow
+RUN pip uninstall -y PIL || true
+RUN pip uninstall -y Pillow || true
 RUN pip install Pillow
 RUN pip install --upgrade imageio
 
@@ -93,24 +93,13 @@ ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX" \
     CUDA_HOME=/usr/local/cuda \
     LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 
-#ENV CUDA_HOME=/usr/local/cuda
-RUN bash -c "git clone --recursive https://github.com/traveller59/spconv.git"
+# build spconv with pip
+RUN pip uninstall -y spconv || true \
+ && pip uninstall -y cumm || true \
+ && pip install spconv-cu118
 
-# We manually download and install cmake since the requirements of spconv is newer than
-# that included in apt for ubuntu18.
-RUN curl -sLo cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.20.1/cmake-3.20.1.tar.gz \
- && tar -xvf cmake.tar.gz
-RUN cd cmake-3.20.1 \
- && ./bootstrap \
- && make -j4 && sudo make install
-
-RUN sudo apt-get update && sudo apt-get install -y libboost-dev \
- && sudo rm -rf /var/lib/apt/lists/*
-
-RUN mamba install mkl==2024.0
-
-COPY docker/spconv.sh spconv.sh
-RUN bash spconv.sh
+# fixing undefined symbol: iJIT_NotifyEvent
+RUN pip install mkl==2024.0
 
 # Check CUDA
 RUN set -x && nvcc --version
