@@ -1,14 +1,10 @@
-# FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu18.04
 FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu18.04
-
-# For the convenience for users in China mainland
-# COPY docker/apt-sources.list /etc/apt/sources.list
 
 # Force IPv4 
 RUN echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
+
 # Use main Ubuntu archive
 # RUN sed -i 's|archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list
-
 # German mirror
 RUN sed -i 's|archive.ubuntu.com|de.archive.ubuntu.com|g' /etc/apt/sources.list
 
@@ -31,6 +27,16 @@ RUN rm -f /etc/apt/sources.list.d/nvidia-ml.list \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-opencv \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update \
+ && apt-get install -y --fix-missing --no-install-recommends \
+    freeglut3-dev \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+# Add NVIDIA OpenGL configuration
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute,display,video
 
 # Create a working directory
 RUN mkdir /app
@@ -63,13 +69,13 @@ RUN mamba install -y -c conda-forge cudatoolkit=11.8 \
     "torchvision=0.15.0=py38_cu118" \
  && mamba clean -ya
 
-# Install dependencies
-# COPY environment.yml environment.yml
-# RUN mamba env update -n base --file environment.yml \
-#  && mamba clean -ya
+ # Install PyOpenGL
+RUN pip install --upgrade PyOpenGL PyOpenGL_accelerate
 
+# Install other dependencies
 RUN pip config set global.index-url https://pypi.org/simple
 COPY requirements.txt requirements.txt
+
 RUN pip install -r requirements.txt
 RUN mamba install -y -c conda-forge -c python \
    numpy \
@@ -77,10 +83,6 @@ RUN mamba install -y -c conda-forge -c python \
    scikit-image \
    && mamba clean -ya
 
- 
-# RUN pip install numpy \
-#    && pip install Cython \
-#    && pip install --no-binary :all: "scikit-image>=0.14.2" 
 RUN pip install --upgrade trimesh
 RUN pip uninstall -y PIL || true
 RUN pip uninstall -y Pillow || true
