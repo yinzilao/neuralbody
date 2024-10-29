@@ -17,6 +17,7 @@ from termcolor import colored
 width = 512
 height = 512
 
+import traceback
 
 def normalize_v3(arr):
     ''' Normalize a numpy array of 3 component vectors shape=(n,3) '''
@@ -104,10 +105,18 @@ cam.far = 10
 data_root = 'data/result/if_nerf/{}/mesh'.format(
     args.exp_name)
 obj_path = os.path.join(data_root, '{:04d}.ply'.format(args.mesh_ind))
+print(f"Debug: Input mesh path: {obj_path}")
 
 mesh_render_dir = os.path.join(data_root, 'mesh{}_render'.format(args.mesh_ind))
+print(f"Debug: Mesh render directory: {mesh_render_dir}")
 
-os.system('mkdir -p {}'.format(mesh_render_dir))
+try:
+    os.system('mkdir -p {}'.format(mesh_render_dir))
+    print(f"Debug: Created directory: {mesh_render_dir}")
+except Exception as e:
+    print(f"Error creating directory: {e}")
+    traceback.print_exc()
+
 obj_files = [obj_path]
 
 if args.dataset == 'zju_mocap':
@@ -123,12 +132,23 @@ for i, obj_path in enumerate(obj_files):
     obj_file = obj_path.split('/')[-1]
     file_name = obj_file[:-4]
 
+    # Add debug before mesh loading
+    print(f"Debug: About to load mesh from {obj_path}")
     if not os.path.exists(obj_path):
-        continue
-    mesh = trimesh.load(obj_path)
-    vertices = mesh.vertices
-    faces = mesh.faces
+        print(f"Error: Mesh file does not exist at {obj_path}")
+        sys.exit(1)
 
+    try:
+        mesh = trimesh.load(obj_path)
+        print("Debug: Successfully loaded mesh")
+        vertices = mesh.vertices
+        faces = mesh.faces
+    except Exception as e:
+        print(f"Error loading mesh: {e}")
+        traceback.print_exc()
+        sys.exit(1)
+
+    print("Debug: Starting mesh processing")
     rot = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
     vertices = np.dot(vertices, rot.T)
     mesh.vertices = vertices
@@ -149,22 +169,30 @@ for i, obj_path in enumerate(obj_files):
     vertices = np.matmul(vertices, self_rot.T)
     cnt = 0
     for j in range(0, 361, 4):
-        cam.center = np.array([0, 0, 0])
-        cam.eye = np.array([
-            2.0 * math.sin(math.radians(0)), 0, 2.0 * math.cos(math.radians(0))
-        ]) + cam.center
+        try:
+            print(f"Debug: Rendering frame {j}")
+            cam.center = np.array([0, 0, 0])
+            cam.eye = np.array([
+                2.0 * math.sin(math.radians(0)), 0, 2.0 * math.cos(math.radians(0))
+            ]) + cam.center
 
-        self_rot = make_rotate(i, math.radians(-4), 0)
-        vertices = np.matmul(vertices, self_rot.T)
-        normals = compute_normal(vertices, faces)
+            self_rot = make_rotate(i, math.radians(-4), 0)
+            vertices = np.matmul(vertices, self_rot.T)
+            normals = compute_normal(vertices, faces)
 
-        renderer.set_mesh(vertices, faces, 0.5 * normals + 0.5, faces)
-        renderer.set_camera(cam)
-        renderer.display()
+            renderer.set_mesh(vertices, faces, 0.5 * normals + 0.5, faces)
+            renderer.set_camera(cam)
+            renderer.display()
 
-        img = renderer.get_color(0)
-        img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGRA)
-        img = img[..., :3]
+            img = renderer.get_color(0)
+            img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGRA)
+            img = img[..., :3]
 
-        cv2.imwrite(os.path.join(mesh_render_dir, '%d.jpg' % cnt), 255 * img)
-        cnt += 1
+            output_path = os.path.join(mesh_render_dir, '%d.jpg' % cnt)
+            print(f"Debug: Saving image to {output_path}")
+            cv2.imwrite(output_path, 255 * img)
+            print(f"Debug: Successfully saved image {cnt}")
+            cnt += 1
+        except Exception as e:
+            print(f"Error rendering image {cnt}: {e}")
+            traceback.print_exc()
