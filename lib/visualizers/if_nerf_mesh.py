@@ -3,6 +3,7 @@ import numpy as np
 from lib.config import cfg
 import os
 from termcolor import colored
+import traceback
 
 
 class Visualizer:
@@ -24,6 +25,10 @@ class Visualizer:
         mesh.show()
 
     def visualize(self, output, batch):
+        print("Debug Visualizer: Starting visualization")
+        print(f"Debug Visualizer: Output keys: {output.keys()}")
+        print(f"Debug Visualizer: Batch keys: {batch.keys()}")
+        
         mesh = output['mesh']
         # mesh.show()
 
@@ -31,4 +36,11 @@ class Visualizer:
         os.system('mkdir -p {}'.format(result_dir))
         i = batch['frame_index'].item()
         result_path = os.path.join(result_dir, '{:04d}.ply'.format(i))
-        mesh.export(result_path)
+        
+        print(f"Debug Visualizer: Saving mesh to {result_path}")
+        try:
+            mesh.export(result_path)
+            print(f"Debug Visualizer: Successfully saved mesh")
+        except Exception as e:
+            print(f"Error saving mesh: {e}")
+            traceback.print_exc()
