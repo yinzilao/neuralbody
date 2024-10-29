@@ -1,5 +1,7 @@
 from lib.config import cfg, args
 
+import os
+os.environ['DISPLAY'] = ':1'
 
 def run_dataset():
     from lib.datasets import make_data_loader
